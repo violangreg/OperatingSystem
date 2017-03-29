@@ -15,7 +15,7 @@ int main(int argc, char *argv[])
 	// i = key, sleeptime = sleep, n1 = 1st integer (a), n2 = 2nd integer (b), seed = randomization sleep
 	// sum = a + b, diff = a - b, mult = a * b, div = a / b
 	int i, sleeptime, n1, n2, seed;
-	int sum, diff, mult, div;
+	int sum, diff, mult, div, rem;
 	
 	// assigning argv to proper variables note argv[0] is ./project2b which is calling to run this program
 	i = atoi(argv[1]);
@@ -45,7 +45,11 @@ int main(int argc, char *argv[])
 			else
 			{
 				div = n1 / n2;
-				printf("I am child 3 with PID %d, the divided is %d \n", getpid(), div);
+				rem = n1 % n2;
+				if(rem > 0)
+					printf("I am child 3 with PID %d, the divided is %d, the remainder is %d \n", getpid(), div, rem);
+				else
+					printf("I am child 3 with PID %d, the divided is %d \n", getpid(), div);
 			}
 			break;
 		default: printf("case: default \n");
