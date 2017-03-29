@@ -1,0 +1,18 @@
+###############################################################
+Labs
+###############################################################
+Lab1: Learning C and linux arguments
+Lab2: Generating chain of processes
+Lab3: Learning exec's
+Lab4: Forking with exec (obsecure left-sided tree n+1)
+Lab5: Learning forking and child exec'ing
+
+
+###############################################################
+Projects
+###############################################################
+Project1: BinaryForkTree
+Project2: ExecALUChildrens
+
+
+###############################################################
