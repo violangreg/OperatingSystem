@@ -49,6 +49,7 @@ void main(int argc, char *argv[])
 		else 
 		{ 
 			printf ("Child %d: unable to obtain lock file \n", k); 
+			kill(pid, k);
 			exit(-1);
 		}
 	}
@@ -80,7 +81,7 @@ void main(int argc, char *argv[])
 	// release the lock
 	unlink(lock);
 	
-	printf("Child %d: releasing 'lock', process LSB: %d \n", k, pid%255);
+	printf("Child %d: releasing 'lock', process LSB: %d \n", k, ret_value);
 	
 	close (fd);
 	exit(ret_value);

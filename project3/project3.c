@@ -1,7 +1,6 @@
 /**************************************************************************/
 /* PROGRAM: Locks - Project 3, 4/6/17
 /* NAME: Greg Paolo Violan, 011706641
-/* NAME: Luke Nyugen,
 /* CLASS: CECS326 Sec 01
 /* DESCRIPTION: This program creates 3 children, each children tries to 
 /* obtain a lock and cat text.dat then release the lock for other children to obtain.
@@ -28,6 +27,12 @@ void main(int argc, char *argv[])
 	if (argc != 4) 
 	{
 		printf("Usage: %s filename sleeptime num_tries \n", argv[0]);
+		exit(1);
+	}
+	
+	if(atoi(argv[2]) < 0 || atoi(argv[3]) <= 0)
+	{
+		printf("sleeptime cannot be < 0 or num_tries cannot be <= 0 \n", argv[0]);
 		exit(1);
 	}
 	
