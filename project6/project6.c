@@ -1,5 +1,4 @@
-/* Unnamed pipe pipe.c */
-/* Usage: pipe message_to_be_written. Parent write a message to child */
+/* Unnamed/named pipe + case sensitivity change pipe.c */
 
 //Use include files: 
 #include <stdio.h>
@@ -15,29 +14,19 @@
 #include <limits.h>
 #include <errno.h>
 #define BUFSIZE 32
-// changing the message
-void lowerToUpper_UpperToLower(char* message[])
-{	
-	int ch;
-	for (int i = 0; i < BUFSIZE; i++)
-	{
-		ch = islower(message[i])? toupper(message[i]) : tolower(message[i]);
-		putchar(ch);
-	}
-}
-
 
 void main(int argc, char *argv[])
 {
 	mode_t fifo_mode = S_IRUSR | S_IWUSR; //int mkfifo (const char *path, mode_t mode); success: 0, failure: -1, sets errno. mkfifo creates the FIFO file referenced by path; 									mode: File mode bits: S_IRUSR read permission, owner. S_IWUSR write permission, owner 
 	int f_des[2]; 
-	static char message[BUFSIZE]; 
+	static char message[BUFSIZE], new_message[BUFSIZE]; 
 	char buffer[MAX_CANON]; 
 	char *c;
 	int i, k, n, child, fd, status; 
 	char buf[BUFSIZE];
 	unsigned strsize;
 	pid_t childpid;
+	i = 0;
 	
 	if (argc != 4 && argc != 5) 
 	{ 
@@ -95,12 +84,30 @@ void main(int argc, char *argv[])
 					while ((wait(&status) == -1) && (errno == EINTR));
 					
 					close(f_des[1]); // close current file?
+					
 					if (read(f_des[0], message, BUFSIZ) != -1) 
 					{ 
 						printf ("parent is about to read the message from FIFO\n");
-						// changing message
-						//lowerToUpper_UpperToLower(message);
-						printf ("parent receives the message *%s* from child %d\n", message, childpid); 
+						
+						// change case sensitivity
+						  while (message[i])
+						  {
+						    c = message[i];
+						    
+					    	    if(islower(c)) 
+						    {
+							 c = toupper(c);
+						    }
+						    else 
+						    {
+							 c = tolower(c);
+						    }
+						    
+						    new_message[i] = c;
+						    i++;
+						  }
+						  
+						printf ("parent receives the message *%s* from child %d\n", new_message, childpid); 
 						fflush(stdout); 
 					}
 					else 
@@ -110,7 +117,7 @@ void main(int argc, char *argv[])
 					} 
 			}// end of switch statement
 		}// end of nested if
-		else{
+		else{ // child receives, parent writes
 			switch (fork()) 
 			{
 				case -1: 
@@ -120,14 +127,31 @@ void main(int argc, char *argv[])
 					/* In the child */
 					close(f_des[1]); // close current file?
 					
-					// changing message
-					//lowerToUpper_UpperToLower(message);
 					
 					// reading message
 					if (read(f_des[0], message, BUFSIZ) != -1) 
 					{ 
 						printf ("child %d is about to read the message from FIFO\n", getpid());
-						printf ("child %d receives the message *%s* from parent\n", getpid(), message);
+						
+						// change case sen.
+						  while (message[i])
+						  {
+						    c = message[i];
+						    
+					    	    if(islower(c)) 
+						    {
+							 c = toupper(c);
+						    }
+						    else 
+						    {
+							 c = tolower(c);
+						    }
+						    
+						    new_message[i] = c;
+						    i++;
+						  }
+						
+						printf ("child %d receives the message *%s* from parent\n", getpid(), new_message);
 						fflush(stdout); 
 					}
 					else 
@@ -165,7 +189,7 @@ void main(int argc, char *argv[])
 		}
 		
 		// parent reads, child writes
-		if(strcmp(argv[3], "p") == 0)
+		if(strcmp(argv[3], "c") == 0)
 		{
 			// fork and create a child to open FIFO
 			if ((childpid = fork()) == -1)
@@ -176,8 +200,6 @@ void main(int argc, char *argv[])
 			else if (childpid == 0)
 			{
 				// child opening FIFO
-				printf ("Child %ld is about to open FIFO %s \n", (long)getpid(), argv[2]);
-				
 				if ((fd = open(argv[2], O_WRONLY)) == -1) // WRITE ONLY
 				{
 					perror("Child cannot open FIFO");
@@ -185,40 +207,57 @@ void main(int argc, char *argv[])
 				}
 		
 				/* In the child */
-				sprintf (buf, "This was written by child %ld \n", (long)getpid());
-				strsize = strlen(buf) + 1;
+				strsize = strlen(argv[4]) + 1;
 		
-				if (write(fd, buf, strsize) != strsize) 
+				if (write(fd, argv[4], strsize) != strsize) 
 				{
 					printf("Child write to FIFO failed\n");
 					exit(1);
 				}
-		
-				printf ("Child %ld is done\n", (long)getpid());
+				
+				printf ("child %d is about to send the message [%s] to %s\n", (long)getpid(), argv[4], argv[2]);
+				printf("message sent\n");
 			}
 			else
 			{
 				/* parent does a read */
-				printf ("Parent %ld is about to open FIFO %s\n", (long) getpid(), argv[2]);
-		
 				// parent opens FIFO
 				if ((fd = open(argv[2], O_RDONLY | O_NONBLOCK)) == -1)
 				{
 					perror("Parent cannot open FIFO");
 					exit(1);
 				}
-				printf ("Parent is about to read\n", (long)getpid());
+				
+				printf ("parent is about to read the message from %s\n", argv[2]);
 		
 				// waits for the child to finish writing
 				while ((wait(&status) == -1) && (errno == EINTR));
-		
+				
 				if (read(fd, buf, BUFSIZE) <= 0)
 				{
 					perror("Parent read from FIFO failed\n");
 					exit(1);
 				}
-		
-				printf ("Parent %ld received: %s\n", (long)getpid(), buf);
+				
+				// change case sen.
+				  while (buf[i])
+				  {
+				    c = buf[i];
+				    
+			    	    if(islower(c)) 
+				    {
+					 c = toupper(c);
+				    }
+				    else 
+				    {
+					 c = tolower(c);
+				    }
+				    
+				    new_message[i] = c;
+				    i++;
+				  }
+				  
+				printf ("parent receives the message *%s* from child %d\n", new_message, (long)childpid);
 			}
 		}
 		else // parent writes, child reads
@@ -231,47 +270,61 @@ void main(int argc, char *argv[])
 			}
 			else if (child == 0)
 			{
-				printf ("Child %ld is about to open FIFO %s \n", (long)getpid(), argv[2]);
-		
-				if ((fd = open(argv[2], O_RDONLY | O_NONBLOCK)) == -1) // WRITE ONLY
+				if ((fd = open(argv[2], O_RDONLY | O_NONBLOCK)) == -1)
 				{
 					perror("Child cannot open FIFO");
 					exit(1);
 				}
-		
-				/* In the child */
-				sprintf (buf, "This was written by child %ld \n", (long)getpid());
-				strsize = strlen(buf) + 1;
 				
 				 // child read
+				printf ("child %d is about to read the message from %s\n", getpid(), argv[2]);
+				 
 				if (read(fd, buf, BUFSIZE) <= 0)
 				{
 					perror("Child read from FIFO failed\n");
 					exit(1);
 				}
 				
-				printf ("Child %ld received: %s\n", (long)getpid(), buf);
+				// change case sensitivity
+				  while (buf[i])
+				  {
+				    c = buf[i];
+				    
+			    	    if(islower(c)) 
+				    {
+					 c = toupper(c);
+				    }
+				    else 
+				    {
+					 c = tolower(c);
+				    }
+				    
+				    new_message[i] = c;
+				    i++;
+				  }
+				printf ("child receives the message *%s* from parent\n", new_message, (long)childpid);
 			}
-			else
+			else	
 			{
 				/* parent does a write */
-				printf ("Parent %ld is about to open FIFO %s\n", (long) getpid(), argv[2]);
-		
 				// parent opens FIFO
 				if ((fd = open(argv[2], O_WRONLY)) == -1)
 				{
 					perror("Parent cannot open FIFO");
 					exit(1);
 				}
-				printf ("Parent is about to write\n", (long)getpid());
-			
+				//printf ("Parent is about to write\n", (long)getpid());
+				strsize = strlen(argv[4]) + 1;
+				
 				// parent write
-				if (write(fd, buf, strsize) != strsize) 
+				if (write(fd, argv[4], strsize) != strsize) 
 				{
 					printf("Parent write to FIFO failed\n");
 					exit(1);
 				}
-				printf ("Parent %ld is done\n", (long)getpid());
+				
+				printf ("parent is about to send the message [%s] to %s\n", argv[4], argv[2]);
+				printf("message sent\n");
 			}
 		}
 		
